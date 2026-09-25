@@ -1,0 +1,86 @@
+# Ghostty — PHOSPHOR
+# cmux renders its terminals with Ghostty and reads this file for them.
+# install.sh links it to ~/.config/ghostty/config (and the shader beside it).
+# Reload with: cmux reload-config   (or Ghostty: cmd+shift+,)
+
+# ─── type ──────────────────────────────────────────────────────────────
+font-family = JetBrainsMono Nerd Font
+font-size = 14
+font-thicken = true
+adjust-cell-height = 12%
+# Ligatures off: they redraw -- as one long dash, so a flag stops looking
+# like a flag. Characters render as what they are.
+font-feature = -calt
+font-feature = -liga
+
+# ─── phosphor ──────────────────────────────────────────────────────────
+# One hue at many brightnesses. The exception is red, which becomes amber —
+# a second phosphor, so an error still reads as an error instead of
+# disappearing into the green.
+background = #020703
+foreground = #41FF8D
+cursor-color = #B9FFD6
+cursor-text = #020703
+selection-background = #1F8F4E
+selection-foreground = #020703
+bold-color = #EAFFF3
+
+palette = 0=#020703
+palette = 1=#FFB000
+palette = 2=#41FF8D
+palette = 3=#FFD08A
+palette = 4=#1F8F4E
+palette = 5=#6BFFB0
+palette = 6=#9BFFC9
+palette = 7=#B9FFD6
+palette = 8=#0C2A17
+palette = 9=#FFC94D
+palette = 10=#7CFFB8
+palette = 11=#FFE3B0
+palette = 12=#2FB86A
+palette = 13=#8CFFC4
+palette = 14=#C6FFE2
+palette = 15=#EAFFF3
+
+background-opacity = 0.97
+background-blur = 28
+unfocused-split-opacity = 0.72
+
+# ─── the tube ──────────────────────────────────────────────────────────
+# Glass curvature, aperture grille, scanlines, bloom, mains hum — and a
+# beam that reacts to the cursor and to focus. See shaders/phosphor.glsl.
+custom-shader = shaders/phosphor.glsl
+custom-shader-animation = true
+
+# ─── cursor ────────────────────────────────────────────────────────────
+# No blink: the shader gives the cursor a live halo instead, which reads
+# as a beam resting rather than a rectangle flashing.
+cursor-style = block
+cursor-style-blink = false
+mouse-hide-while-typing = true
+
+# ─── frame ─────────────────────────────────────────────────────────────
+window-padding-x = 16
+window-padding-y = 12,6
+window-padding-balance = true
+window-inherit-working-directory = true
+window-save-state = always
+
+# ─── behaviour ─────────────────────────────────────────────────────────
+scrollback-limit = 100000000
+copy-on-select = clipboard
+shell-integration = detect
+# 'cursor' is deliberately absent: it lets the shell override cursor-style,
+# which turns the block back into a bar.
+shell-integration-features = no-cursor,sudo,title
+macos-option-as-alt = true
+confirm-close-surface = false
+link-url = true
+
+# ─── keys ──────────────────────────────────────────────────────────────
+# cmux owns tab/split/workspace bindings; these are text-editing only.
+keybind = cmd+left=text:\x01
+keybind = cmd+right=text:\x05
+keybind = alt+left=esc:b
+keybind = alt+right=esc:f
+keybind = cmd+backspace=text:\x15

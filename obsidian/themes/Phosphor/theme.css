@@ -1,0 +1,692 @@
+/* ═════════════════════════════════════════════════════════════════════
+   PHOSPHOR — Obsidian, as a CRT.
+
+   The colour law is not decoration here, it is wired into Obsidian's
+   own semantics:
+
+     #41FF8D  live    a real value, a resolved link, working
+     #1F8F4E  chrome  labels, structure, anything you skip
+     #0C2A17  rule    dividers, tracks, the empty part of a bar
+     #EAFFF3  hot     the one thing to look at
+     #FFB000  amber   THE MACHINE IS WRONG — unresolved link, error, conflict
+     #FF4D4D  red     down, in markets only
+
+   Amber is the machine, red is the market. A broken [[link]] is the
+   machine being wrong, so broken links are amber. Nothing in Obsidian
+   is ever market-red.
+   ═════════════════════════════════════════════════════════════════════ */
+
+/* @settings
+
+name: Phosphor
+id: phosphor
+settings:
+  -
+    id: phosphor-tube
+    title: The tube
+    type: heading
+    level: 1
+  -
+    id: phosphor-scanlines
+    title: Scanlines
+    description: Horizontal CRT raster over the whole window.
+    type: variable-number-slider
+    default: 0.5
+    min: 0
+    max: 1
+    step: 0.05
+    format: ""
+  -
+    id: phosphor-glow
+    title: Phosphor glow
+    description: How far text bleeds into the glass.
+    type: variable-number-slider
+    default: 0.55
+    min: 0
+    max: 1.5
+    step: 0.05
+    format: ""
+  -
+    id: phosphor-vignette
+    title: Vignette
+    description: Darkening at the corners of the tube.
+    type: variable-number-slider
+    default: 0.45
+    min: 0
+    max: 1
+    step: 0.05
+    format: ""
+  -
+    id: phosphor-flicker
+    title: Mains hum
+    description: Slow brightness drift, as on a real tube. 0 turns it off.
+    type: variable-number-slider
+    default: 0.35
+    min: 0
+    max: 1
+    step: 0.05
+    format: ""
+  -
+    id: phosphor-curve
+    title: Glass curvature
+    description: Bends the window onto tube glass. Costs a little text crispness.
+    type: variable-number-slider
+    default: 0
+    min: 0
+    max: 1
+    step: 0.1
+    format: ""
+  -
+    id: phosphor-ink
+    title: Ink
+    type: heading
+    level: 1
+  -
+    id: phosphor-live
+    title: Live green
+    type: variable-themed-color
+    format: hex
+    opacity: false
+    default-dark: '#41FF8D'
+    default-light: '#41FF8D'
+  -
+    id: phosphor-amber
+    title: Amber (the machine is wrong)
+    type: variable-themed-color
+    format: hex
+    opacity: false
+    default-dark: '#FFB000'
+    default-light: '#FFB000'
+
+*/
+
+.theme-dark,
+.theme-light {
+  /* ── the law ──────────────────────────────────────────────────── */
+  --phosphor-ground:  #020703;
+  --phosphor-live:    #41FF8D;
+  --phosphor-chrome:  #1F8F4E;
+  --phosphor-rule:    #0C2A17;
+  --phosphor-hot:     #EAFFF3;
+  --phosphor-amber:   #FFB000;
+  --phosphor-red:     #FF4D4D;
+  --phosphor-dim:     #6BFFB0;
+  --phosphor-pale:    #9BFFC9;
+  --phosphor-wash:    #B9FFD6;
+
+  /* raised surfaces — the ground, lifted, never a different hue */
+  --phosphor-raise-1: #050D07;
+  --phosphor-raise-2: #08170D;
+  --phosphor-raise-3: #0C2A17;
+
+  /* knobs Style Settings writes to */
+  --phosphor-scanlines: 0.5;
+  --phosphor-glow:      0.55;
+  --phosphor-vignette:  0.45;
+  --phosphor-flicker:   0.35;
+  --phosphor-curve:     0;
+
+  /* ── type ─────────────────────────────────────────────────────── */
+  --font-interface-theme: "JetBrainsMono Nerd Font", "JetBrains Mono", ui-monospace, monospace;
+  --font-text-theme:      "JetBrainsMono Nerd Font", "JetBrains Mono", ui-monospace, monospace;
+  --font-monospace-theme: "JetBrainsMono Nerd Font", "JetBrains Mono", ui-monospace, monospace;
+  --font-smallest: 0.72em;
+  --font-smaller:  0.8em;
+  --font-small:    0.875em;
+  --line-height-normal: 1.6;
+  --line-height-tight:  1.3;
+  --font-weight: 400;
+  --bold-weight: 700;
+  --bold-color: var(--phosphor-hot);
+  --italic-color: var(--phosphor-pale);
+
+  /* ── ground ───────────────────────────────────────────────────── */
+  --background-primary:          var(--phosphor-ground);
+  --background-primary-alt:      var(--phosphor-raise-1);
+  --background-secondary:        #030A05;
+  --background-secondary-alt:    var(--phosphor-ground);
+  --background-modifier-hover:   rgba(65, 255, 141, 0.07);
+  --background-modifier-active-hover: rgba(65, 255, 141, 0.12);
+  --background-modifier-border:  var(--phosphor-rule);
+  --background-modifier-border-hover:  #17693B;
+  --background-modifier-border-focus:  var(--phosphor-live);
+  --background-modifier-box-shadow: rgba(0, 0, 0, 0.8);
+  --background-modifier-success: rgba(65, 255, 141, 0.25);
+  --background-modifier-error:   rgba(255, 176, 0, 0.18);
+  --background-modifier-error-rgb: 255, 176, 0;
+  --background-modifier-error-hover: rgba(255, 176, 0, 0.3);
+  --background-modifier-message: rgba(2, 7, 3, 0.92);
+  --background-modifier-form-field: var(--phosphor-raise-1);
+
+  /* ── ink ──────────────────────────────────────────────────────── */
+  --text-normal:      var(--phosphor-live);
+  --text-muted:       var(--phosphor-chrome);
+  --text-faint:       #176B3A;
+  --text-on-accent:   var(--phosphor-ground);
+  --text-on-accent-inverted: var(--phosphor-ground);
+  --text-error:       var(--phosphor-amber);
+  --text-warning:     var(--phosphor-amber);
+  --text-success:     var(--phosphor-live);
+  --text-accent:      var(--phosphor-hot);
+  --text-accent-hover: #FFFFFF;
+  --text-selection:   rgba(31, 143, 78, 0.55);
+  --text-highlight-bg: rgba(255, 176, 0, 0.28);
+  --text-highlight-bg-active: rgba(255, 176, 0, 0.45);
+
+  /* ── accent ───────────────────────────────────────────────────── */
+  --accent-h: 149;
+  --accent-s: 100%;
+  --accent-l: 63%;
+  --interactive-accent:       var(--phosphor-live);
+  --interactive-accent-hover: var(--phosphor-dim);
+  --interactive-normal:       var(--phosphor-raise-1);
+  --interactive-hover:        var(--phosphor-raise-2);
+  --interactive-success:      var(--phosphor-live);
+
+  /* ── structure ────────────────────────────────────────────────── */
+  --divider-color:        var(--phosphor-rule);
+  --divider-color-hover:  var(--phosphor-live);
+  --divider-width:        1px;
+  --divider-width-hover:  2px;
+  --hr-color:             var(--phosphor-rule);
+  --hr-thickness:         1px;
+  --radius-s: 0px;
+  --radius-m: 0px;
+  --radius-l: 0px;
+  --radius-xl: 0px;
+  --input-radius: 0px;
+  --modal-radius: 0px;
+  --tab-radius: 0px;
+  --tab-radius-active: 0px;
+  --tab-curve: 0px;
+  --scrollbar-thumb-bg: var(--phosphor-rule);
+  --scrollbar-active-thumb-bg: var(--phosphor-chrome);
+  --scrollbar-bg: transparent;
+
+  /* ── links ────────────────────────────────────────────────────── */
+  /* resolved = live. unresolved = amber: a broken link is the machine
+     being wrong, not the market going down. */
+  --link-color:            var(--phosphor-hot);
+  --link-color-hover:      #FFFFFF;
+  --link-decoration:       none;
+  --link-decoration-hover: underline;
+  --link-external-color:       var(--phosphor-wash);
+  --link-external-color-hover: var(--phosphor-hot);
+  --link-unresolved-color:     var(--phosphor-amber);
+  --link-unresolved-opacity:   1;
+  --link-unresolved-decoration-style: dashed;
+  --link-unresolved-decoration-color: rgba(255, 176, 0, 0.6);
+
+  /* ── headings — one hue, six brightnesses ─────────────────────── */
+  --h1-color: var(--phosphor-hot);
+  --h2-color: var(--phosphor-wash);
+  --h3-color: var(--phosphor-pale);
+  --h4-color: var(--phosphor-dim);
+  --h5-color: var(--phosphor-live);
+  --h6-color: var(--phosphor-chrome);
+  --h1-size: 1.9em; --h2-size: 1.5em; --h3-size: 1.25em;
+  --h4-size: 1.08em; --h5-size: 1em;  --h6-size: 0.9em;
+  --h1-weight: 700; --h2-weight: 700; --h3-weight: 600;
+  --h4-weight: 600; --h5-weight: 600; --h6-weight: 600;
+  --heading-spacing: 1.4em;
+
+  /* ── code ─────────────────────────────────────────────────────── */
+  --code-background: var(--phosphor-raise-1);
+  --code-normal:     var(--phosphor-wash);
+  --code-comment:    var(--phosphor-chrome);
+  --code-function:   var(--phosphor-hot);
+  --code-important:  var(--phosphor-amber);
+  --code-keyword:    var(--phosphor-dim);
+  --code-operator:   var(--phosphor-pale);
+  --code-property:   var(--phosphor-live);
+  --code-punctuation: var(--phosphor-chrome);
+  --code-string:     var(--phosphor-pale);
+  --code-tag:        var(--phosphor-hot);
+  --code-value:      var(--phosphor-amber);
+  --code-size: 0.9em;
+
+  /* ── tables ───────────────────────────────────────────────────── */
+  --table-header-background: var(--phosphor-raise-2);
+  --table-header-color: var(--phosphor-chrome);
+  --table-row-alt-background: rgba(65, 255, 141, 0.028);
+  --table-row-background-hover: rgba(65, 255, 141, 0.06);
+  --table-border-color: var(--phosphor-rule);
+  --table-border-width: 1px;
+
+  /* ── chrome ───────────────────────────────────────────────────── */
+  --titlebar-background: var(--phosphor-ground);
+  --titlebar-background-focused: var(--phosphor-ground);
+  --titlebar-border-width: 1px;
+  --titlebar-border-color: var(--phosphor-rule);
+  --tab-text-color: var(--phosphor-chrome);
+  --tab-text-color-active: var(--phosphor-ground);
+  --tab-text-color-focused: var(--phosphor-live);
+  --tab-text-color-focused-active: var(--phosphor-ground);
+  --tab-text-color-focused-active-current: var(--phosphor-ground);
+  --tab-background-active: var(--phosphor-live);
+  --tab-outline-color: var(--phosphor-rule);
+  --tab-outline-width: 1px;
+  --tab-divider-color: var(--phosphor-rule);
+  --header-height: 36px;
+  --ribbon-background: var(--phosphor-ground);
+  --ribbon-background-collapsed: var(--phosphor-ground);
+  --nav-item-color: var(--phosphor-chrome);
+  --nav-item-color-hover: var(--phosphor-live);
+  --nav-item-color-active: var(--phosphor-hot);
+  --nav-item-color-selected: var(--phosphor-hot);
+  --nav-item-background-hover: rgba(65, 255, 141, 0.07);
+  --nav-item-background-active: rgba(65, 255, 141, 0.12);
+  --nav-item-background-selected: rgba(65, 255, 141, 0.12);
+  --nav-item-weight-active: 700;
+  --nav-indentation-guide-color: var(--phosphor-rule);
+  --status-bar-background: var(--phosphor-ground);
+  --status-bar-text-color: var(--phosphor-chrome);
+  --status-bar-border-color: var(--phosphor-rule);
+  --status-bar-border-width: 1px;
+  --prompt-border-color: var(--phosphor-live);
+  --prompt-border-width: 1px;
+  --modal-border-color: var(--phosphor-rule);
+  --modal-border-width: 1px;
+  --modal-background: var(--phosphor-ground);
+
+  /* ── graph ────────────────────────────────────────────────────── */
+  --graph-line: var(--phosphor-rule);
+  --graph-node: var(--phosphor-live);
+  --graph-node-tag: var(--phosphor-dim);
+  --graph-node-attachment: var(--phosphor-chrome);
+  --graph-node-unresolved: var(--phosphor-amber);
+  --graph-node-focused: var(--phosphor-hot);
+
+  /* ── inputs ───────────────────────────────────────────────────── */
+  --checkbox-color: var(--phosphor-live);
+  --checkbox-color-hover: var(--phosphor-dim);
+  --checkbox-border-color: var(--phosphor-chrome);
+  --checkbox-border-color-hover: var(--phosphor-live);
+  --checkbox-marker-color: var(--phosphor-ground);
+  --checklist-done-color: var(--phosphor-chrome);
+  --checklist-done-decoration: line-through;
+  --toggle-thumb-color: var(--phosphor-ground);
+  --toggle-border-width: 1px;
+
+  --blockquote-border-color: var(--phosphor-chrome);
+  --blockquote-border-thickness: 2px;
+  --blockquote-color: var(--phosphor-pale);
+  --blockquote-background-color: rgba(65, 255, 141, 0.03);
+
+  --tag-color: var(--phosphor-ground);
+  --tag-background: var(--phosphor-chrome);
+  --tag-background-hover: var(--phosphor-live);
+  --tag-border-width: 0px;
+  --tag-radius: 0px;
+  --tag-padding-x: 0.42em;
+  --tag-weight: 600;
+
+  --indentation-guide-color: var(--phosphor-rule);
+  --indentation-guide-color-active: var(--phosphor-chrome);
+  --collapse-icon-color: var(--phosphor-chrome);
+  --icon-color: var(--phosphor-chrome);
+  --icon-color-hover: var(--phosphor-live);
+  --icon-color-active: var(--phosphor-hot);
+  --icon-color-focused: var(--phosphor-hot);
+  --icon-stroke: 1.7px;
+
+  --cursor-line-background: rgba(65, 255, 141, 0.035);
+  --embed-border-left: 2px solid var(--phosphor-rule);
+  --footnote-size: 0.85em;
+  --file-line-width: 780px;
+  --shadow-s: 0 1px 0 rgba(0,0,0,0.6);
+  --shadow-l: 0 8px 32px rgba(0,0,0,0.8);
+  --search-result-background: var(--phosphor-raise-1);
+}
+
+/* ═══ the tube ══════════════════════════════════════════════════════
+   Scanlines, aperture grille, vignette and mains hum over the whole
+   window. pointer-events:none so none of it ever eats a click. */
+
+body.theme-dark::after,
+body.theme-light::after {
+  content: "";
+  position: fixed;
+  inset: 0;
+  z-index: 9999;
+  pointer-events: none;
+  opacity: var(--phosphor-scanlines);
+  background:
+    repeating-linear-gradient(
+      to bottom,
+      rgba(0, 0, 0, 0.28) 0px,
+      rgba(0, 0, 0, 0.28) 1px,
+      transparent 1px,
+      transparent 3px
+    ),
+    repeating-linear-gradient(
+      to right,
+      rgba(255, 0, 0, 0.035) 0px,
+      rgba(0, 255, 0, 0.02) 1px,
+      rgba(0, 0, 255, 0.035) 2px,
+      transparent 3px
+    );
+  mix-blend-mode: multiply;
+}
+
+/* vignette + hum, on their own layer so the slider can kill either */
+body.theme-dark::before,
+body.theme-light::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  z-index: 9998;
+  pointer-events: none;
+  background: radial-gradient(
+    ellipse 120% 130% at 50% 50%,
+    transparent 42%,
+    rgba(0, 0, 0, calc(0.75 * var(--phosphor-vignette))) 100%
+  );
+  animation: phosphor-hum 8.4s ease-in-out infinite;
+}
+
+@keyframes phosphor-hum {
+  0%, 100% { opacity: 1; }
+  47%      { opacity: calc(1 - 0.05 * var(--phosphor-flicker)); }
+  52%      { opacity: calc(1 + 0.03 * var(--phosphor-flicker)); }
+}
+
+/* glass curvature — off by default; it costs text crispness */
+.app-container {
+  transform: perspective(2400px) rotateX(calc(0.22deg * var(--phosphor-curve)));
+  transform-origin: center 46%;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  body::before { animation: none; }
+}
+
+/* ═══ glow ═════════════════════════════════════════════════════════
+   Real phosphor bleeds. Applied to text that carries meaning, never to
+   chrome — glowing labels is how a CRT stops being readable. */
+
+.markdown-preview-view,
+.markdown-source-view,
+.cm-line,
+.inline-title,
+.view-header-title,
+.nav-file-title-content,
+.tree-item-inner {
+  text-shadow: 0 0 calc(6px * var(--phosphor-glow)) rgba(65, 255, 141, calc(0.3 * var(--phosphor-glow)));
+}
+
+.HyperMD-header, h1, h2, h3, .inline-title {
+  text-shadow:
+    0 0 calc(8px * var(--phosphor-glow))  rgba(234, 255, 243, calc(0.42 * var(--phosphor-glow))),
+    0 0 calc(22px * var(--phosphor-glow)) rgba(65, 255, 141, calc(0.22 * var(--phosphor-glow)));
+}
+
+strong, .cm-strong { text-shadow: 0 0 calc(9px * var(--phosphor-glow)) rgba(234, 255, 243, calc(0.5 * var(--phosphor-glow))); }
+
+/* amber glows amber — the machine being wrong should be visible from
+   across the room */
+.is-unresolved,
+.internal-link.is-unresolved,
+.cm-hmd-internal-link.is-unresolved {
+  text-shadow: 0 0 calc(10px * var(--phosphor-glow)) rgba(255, 176, 0, calc(0.55 * var(--phosphor-glow)));
+}
+
+/* chrome does not glow */
+.nav-folder-title,
+.status-bar,
+.side-dock-ribbon,
+.workspace-tab-header,
+.tree-item-flair {
+  text-shadow: none !important;
+}
+
+/* ═══ the frame ════════════════════════════════════════════════════ */
+
+/* Active tab is a filled green bar — the pane you are in is unmistakable,
+   the same rule the terminal's active-pane border follows. */
+.workspace-tab-header.is-active .workspace-tab-header-inner {
+  background: var(--phosphor-live);
+}
+.workspace-tab-header.is-active .workspace-tab-header-inner-title,
+.workspace-tab-header.is-active .workspace-tab-header-inner-icon,
+.workspace-tab-header.is-active .workspace-tab-header-inner-close-button {
+  color: var(--phosphor-ground) !important;
+  font-weight: 700;
+}
+.workspace-tab-header-inner { padding: 3px 10px; }
+.workspace-tab-header-inner-title { letter-spacing: 0.02em; }
+
+/* Focused pane gets a live border; the rest fall back. Same law as
+   a terminal's active-pane border. */
+.workspace-split .workspace-leaf { border: 1px solid var(--phosphor-rule); }
+.workspace-leaf.mod-active .view-content,
+.workspace-split.mod-root .workspace-leaf:has(.view-content:focus-within) {
+  box-shadow: inset 0 0 0 1px rgba(65, 255, 141, 0.32);
+}
+
+/* Ribbon — the left rail reads as a bank of indicator lamps */
+.side-dock-ribbon-action:hover { background: rgba(65, 255, 141, 0.1); }
+.side-dock-ribbon-action.is-active { color: var(--phosphor-hot); }
+
+/* Status bar: monospace, chrome-coloured, with a live lamp on the left */
+.status-bar { font-size: 11px; letter-spacing: 0.04em; text-transform: uppercase; }
+.status-bar::before {
+  content: "●";
+  color: var(--phosphor-live);
+  margin: 0 10px 0 4px;
+  font-size: 9px;
+  animation: phosphor-lamp 3.2s ease-in-out infinite;
+}
+@keyframes phosphor-lamp {
+  0%, 100% { opacity: 1; }
+  50%      { opacity: 0.42; }
+}
+.status-bar-item { padding: 0 8px; }
+
+/* ═══ the editor ═══════════════════════════════════════════════════ */
+
+.inline-title {
+  font-weight: 700;
+  color: var(--phosphor-hot);
+  border-bottom: 1px solid var(--phosphor-rule);
+  padding-bottom: 0.3em;
+  margin-bottom: 0.7em;
+}
+
+/* Headings get a rule under them, like a section on a terminal report */
+.markdown-rendered h1, .markdown-rendered h2,
+.HyperMD-header-1, .HyperMD-header-2 {
+  border-bottom: 1px solid var(--phosphor-rule);
+  padding-bottom: 0.22em;
+}
+
+/* Heading markers show as terminal prompts rather than hashes */
+.markdown-rendered h1::before { content: "█ "; color: var(--phosphor-live); opacity: 0.5; }
+.markdown-rendered h2::before { content: "▓ "; color: var(--phosphor-chrome); }
+.markdown-rendered h3::before { content: "▒ "; color: var(--phosphor-chrome); }
+.markdown-rendered h4::before { content: "░ "; color: var(--phosphor-chrome); }
+
+hr, .markdown-rendered hr {
+  border: none;
+  border-top: 1px solid var(--phosphor-rule);
+  position: relative;
+}
+
+/* Blockquote reads as a quoted transmission */
+.markdown-rendered blockquote { padding-left: 1em; font-style: normal; }
+
+/* Code blocks: a bordered box with a live top edge */
+.markdown-rendered pre,
+.HyperMD-codeblock-bg {
+  border: 1px solid var(--phosphor-rule);
+  border-top: 1px solid var(--phosphor-chrome);
+}
+.markdown-rendered code { border: 1px solid var(--phosphor-rule); padding: 0.08em 0.35em; }
+
+/* Tables: terminal report, not a spreadsheet */
+.markdown-rendered th {
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  font-size: 0.78em;
+  font-weight: 700;
+  border-bottom: 1px solid var(--phosphor-chrome) !important;
+}
+.markdown-rendered td { font-variant-numeric: tabular-nums; }
+
+/* Checkboxes: a hard square that fills solid. No rounding, no bounce. */
+input[type="checkbox"] {
+  appearance: none;
+  border: 1px solid var(--phosphor-chrome);
+  border-radius: 0;
+  width: 15px; height: 15px;
+  position: relative;
+  top: 2px;
+}
+input[type="checkbox"]:checked {
+  background: var(--phosphor-live);
+  border-color: var(--phosphor-live);
+  box-shadow: 0 0 8px rgba(65, 255, 141, 0.55);
+}
+input[type="checkbox"]:checked::after {
+  content: "";
+  position: absolute;
+  left: 4px; top: 1px;
+  width: 4px; height: 8px;
+  border: solid var(--phosphor-ground);
+  border-width: 0 2px 2px 0;
+  transform: rotate(43deg);
+}
+
+/* Tags: solid chips, uppercase, like flags on a status line */
+.tag, a.tag {
+  text-transform: uppercase;
+  font-size: 0.74em;
+  letter-spacing: 0.06em;
+  vertical-align: middle;
+}
+.tag:hover { color: var(--phosphor-ground) !important; }
+
+/* Properties / frontmatter — the note's header block */
+.metadata-container {
+  background: var(--phosphor-raise-1);
+  border: 1px solid var(--phosphor-rule);
+  border-left: 2px solid var(--phosphor-chrome);
+  padding: 8px 12px;
+}
+.metadata-property-key-input { text-transform: uppercase; font-size: 0.76em; letter-spacing: 0.06em; }
+.metadata-property-icon { color: var(--phosphor-chrome); }
+
+/* ═══ file explorer ════════════════════════════════════════════════ */
+
+.nav-folder-title-content {
+  text-transform: uppercase;
+  font-size: 0.8em;
+  letter-spacing: 0.07em;
+  font-weight: 700;
+  color: var(--phosphor-chrome);
+}
+.nav-file-title-content { font-size: 0.88em; }
+.nav-file.is-active .nav-file-title { border-left: 2px solid var(--phosphor-live); }
+
+/* ═══ search, palette, quick switcher ══════════════════════════════ */
+
+.prompt {
+  border: 1px solid var(--phosphor-live);
+  box-shadow: 0 0 40px rgba(65, 255, 141, 0.12), var(--shadow-l);
+}
+.prompt-input {
+  font-family: var(--font-monospace-theme);
+  color: var(--phosphor-hot);
+  caret-color: var(--phosphor-live);
+}
+.prompt-input::placeholder { color: var(--phosphor-chrome); }
+.suggestion-item.is-selected {
+  background: var(--phosphor-live);
+  color: var(--phosphor-ground);
+}
+.suggestion-item.is-selected .suggestion-title,
+.suggestion-item.is-selected .suggestion-note,
+.suggestion-item.is-selected .suggestion-hotkey { color: var(--phosphor-ground) !important; }
+.suggestion-note { color: var(--phosphor-chrome); }
+.search-result-file-title { color: var(--phosphor-wash); }
+.search-result-file-matched-text {
+  background: rgba(255, 176, 0, 0.24);
+  color: var(--phosphor-hot);
+}
+
+/* ═══ graph ════════════════════════════════════════════════════════ */
+.graph-view.color-fill { color: var(--phosphor-live); }
+.graph-view.color-line { color: var(--phosphor-rule); }
+.graph-view.color-text { color: var(--phosphor-pale); }
+.graph-view.color-fill-highlight { color: var(--phosphor-hot); }
+.graph-view.color-line-highlight { color: var(--phosphor-live); }
+.graph-view.color-fill-unresolved { color: var(--phosphor-amber); }
+.graph-controls { border: 1px solid var(--phosphor-rule); background: rgba(2, 7, 3, 0.94); }
+
+/* ═══ canvas ═══════════════════════════════════════════════════════ */
+.canvas-wrapper { --canvas-background: var(--phosphor-ground); --canvas-color: 65, 255, 141; }
+.canvas-node-container { border: 1px solid var(--phosphor-rule); }
+.canvas-node.is-focused .canvas-node-container { border-color: var(--phosphor-live); }
+.canvas-card-menu, .canvas-controls { border: 1px solid var(--phosphor-rule); }
+
+/* ═══ callouts — recoloured to the law ═════════════════════════════
+   Everything that means "the machine is wrong" is amber. Everything
+   that means "working" is green. Nothing is blue, because nothing
+   in this palette is blue. */
+.callout {
+  border: 1px solid var(--phosphor-rule);
+  border-left: 2px solid rgb(var(--callout-color));
+  border-radius: 0;
+  background: rgba(65, 255, 141, 0.03);
+  mix-blend-mode: normal;
+}
+.callout-title { text-transform: uppercase; letter-spacing: 0.06em; font-size: 0.82em; }
+.callout[data-callout] { --callout-color: 65, 255, 141; }
+.callout[data-callout="warning"],
+.callout[data-callout="caution"],
+.callout[data-callout="attention"],
+.callout[data-callout="bug"],
+.callout[data-callout="failure"],
+.callout[data-callout="fail"],
+.callout[data-callout="missing"],
+.callout[data-callout="danger"],
+.callout[data-callout="error"] { --callout-color: 255, 176, 0; }
+.callout[data-callout="tip"],
+.callout[data-callout="hint"],
+.callout[data-callout="important"],
+.callout[data-callout="success"],
+.callout[data-callout="check"],
+.callout[data-callout="done"] { --callout-color: 234, 255, 243; }
+.callout[data-callout="quote"],
+.callout[data-callout="cite"],
+.callout[data-callout="abstract"],
+.callout[data-callout="summary"],
+.callout[data-callout="note"],
+.callout[data-callout="info"],
+.callout[data-callout="todo"],
+.callout[data-callout="question"],
+.callout[data-callout="example"] { --callout-color: 31, 143, 78; }
+
+/* ═══ scrollbars ═══════════════════════════════════════════════════ */
+::-webkit-scrollbar { width: 9px; height: 9px; }
+::-webkit-scrollbar-thumb { border-radius: 0; border: 2px solid var(--phosphor-ground); }
+::-webkit-scrollbar-corner { background: transparent; }
+
+/* ═══ dataview ═════════════════════════════════════════════════════ */
+.dataview.table-view-table th {
+  text-transform: uppercase;
+  font-size: 0.74em;
+  letter-spacing: 0.07em;
+  color: var(--phosphor-chrome);
+}
+.dataview.small-text { font-size: 0.85em; }
+.dataview-error { color: var(--phosphor-amber); }
+.dataview.result-group-header { color: var(--phosphor-hot); }
+
+/* ═══ selection / cursor ═══════════════════════════════════════════ */
+::selection { background: var(--phosphor-chrome); color: var(--phosphor-ground); }
+.cm-editor .cm-cursor, .cm-editor .cm-cursor-primary {
+  border-left: 2px solid var(--phosphor-wash);
+  box-shadow: 0 0 8px rgba(185, 255, 214, 0.7);
+}
+.cm-editor.cm-focused .cm-cursor { animation: none; }

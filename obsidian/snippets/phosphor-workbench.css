@@ -1,0 +1,168 @@
+/* PHOSPHOR WORKBENCH — an opt-in cssclass for dense dashboard notes.
+   Turn it on per note in frontmatter:
+
+     ---
+     cssclasses: [phosphor-workbench]
+     ---
+
+   Scoped additions to the Phosphor theme: sharper body copy, roomier tables
+   and callouts, and pane-width breakpoints. Nothing outside a note that opts
+   in is touched; no graph, global theme, or plugin behaviour is replaced. */
+
+/* --phosphor-hot, --phosphor-amber and --phosphor-rule come from the theme
+   (with the same values as fallbacks). They are not redeclared here, so a
+   colour changed in Style Settings still reaches workbench notes. */
+.phosphor-workbench {
+  --phosphor-surface: #08170d;
+  --phosphor-ink: #41ff8d;
+  --phosphor-secondary: #35b86d;
+  --text-normal: var(--phosphor-ink);
+  --text-muted: var(--phosphor-secondary);
+  --text-faint: var(--phosphor-secondary);
+  --table-header-color: var(--phosphor-secondary);
+  --table-header-background: var(--phosphor-surface);
+  --table-row-background-hover: var(--phosphor-surface);
+  --h2-size: 1.18em;
+  --h2-color: var(--phosphor-hot, #eafff3);
+  --heading-spacing: 1.55em;
+  --file-line-width: 780px;
+  --link-decoration: underline;
+  --link-unresolved-opacity: 1;
+  container-name: phosphor-workbench;
+  container-type: inline-size;
+}
+
+/* Keep the tube's identity; sharper body copy carries the dense work. */
+.phosphor-workbench .markdown-preview-sizer,
+.phosphor-workbench .cm-content,
+.phosphor-workbench .cm-line {
+  text-shadow: none;
+}
+
+.phosphor-workbench .markdown-preview-sizer,
+.phosphor-workbench .cm-contentContainer {
+  min-width: 0;
+}
+
+.phosphor-workbench p,
+.phosphor-workbench li,
+.phosphor-workbench td,
+.phosphor-workbench th,
+.phosphor-workbench .internal-link {
+  overflow-wrap: anywhere;
+}
+
+.phosphor-workbench p { margin-block: 0.6em 0.9em; }
+.phosphor-workbench h2 {
+  margin-block-start: 1.55em;
+  padding-block-end: 0.4em;
+  letter-spacing: 0.01em;
+}
+.phosphor-workbench h2::before { color: var(--phosphor-secondary); }
+
+.phosphor-workbench .callout {
+  padding: 14px 16px;
+  margin-block: 1em 1.25em;
+  border-color: var(--phosphor-rule, #0c2a17);
+  border-inline-start: 2px solid var(--phosphor-secondary);
+  background: var(--phosphor-surface);
+  box-shadow: none;
+}
+.phosphor-workbench .callout[data-callout="todo"] { --callout-color: 53, 184, 109; }
+.phosphor-workbench .callout-title {
+  color: var(--phosphor-secondary);
+  font-size: 13px;
+  line-height: 1.5;
+  letter-spacing: 0.06em;
+}
+.phosphor-workbench .callout-content > p:first-child { margin-block-start: 0.6em; }
+.phosphor-workbench .callout-content > p:last-child { margin-block-end: 0; }
+.phosphor-workbench .callout-content strong,
+.phosphor-workbench .callout-content strong a {
+  color: var(--phosphor-hot, #eafff3);
+  font-size: 1.08em;
+  text-shadow: none;
+}
+
+.phosphor-workbench table {
+  width: 100%;
+  table-layout: fixed;
+  border-collapse: collapse;
+}
+.phosphor-workbench th,
+.phosphor-workbench .dataview.table-view-table th {
+  color: var(--phosphor-secondary);
+  background: var(--phosphor-surface);
+  font-size: 13px;
+  line-height: 1.5;
+  letter-spacing: 0.035em;
+  padding: 9px 12px;
+}
+.phosphor-workbench td {
+  padding: 10px 12px;
+  vertical-align: top;
+  line-height: 1.55;
+}
+.phosphor-workbench th:first-child,
+.phosphor-workbench td:first-child { width: 32%; }
+.phosphor-workbench .dataview th:first-child,
+.phosphor-workbench .dataview td:first-child { width: 76%; }
+.phosphor-workbench table a,
+.phosphor-workbench .callout-content a {
+  display: inline-block;
+  min-height: 24px;
+  text-underline-offset: 0.2em;
+  text-decoration-thickness: 1px;
+}
+.phosphor-workbench a:hover {
+  color: var(--phosphor-hot, #eafff3);
+  text-decoration-thickness: 2px;
+}
+.phosphor-workbench a:focus-visible,
+.phosphor-workbench button:focus-visible,
+.phosphor-workbench input:focus-visible,
+.phosphor-workbench [tabindex]:focus-visible {
+  outline: 2px solid var(--phosphor-hot, #eafff3);
+  outline-offset: 3px;
+  border-radius: 2px;
+}
+.phosphor-workbench .is-unresolved,
+.phosphor-workbench .dataview-error { color: var(--phosphor-amber, #ffb000); }
+.phosphor-workbench .dataview.small-text {
+  color: var(--phosphor-secondary);
+  font-size: 13px;
+}
+
+/* Pane widths, not window widths: split panes reflow independently. */
+@container phosphor-workbench (max-width: 480px) {
+  .phosphor-workbench .markdown-preview-sizer { padding-inline: 16px; }
+  .phosphor-workbench th,
+  .phosphor-workbench td,
+  .phosphor-workbench .dataview.table-view-table th { padding: 8px; }
+  .phosphor-workbench .callout { padding: 12px; }
+  .phosphor-workbench th:first-child,
+  .phosphor-workbench td:first-child { width: 36%; }
+  .phosphor-workbench .dataview th:first-child,
+  .phosphor-workbench .dataview td:first-child { width: 68%; }
+}
+@container phosphor-workbench (max-width: 340px) {
+  .phosphor-workbench .markdown-preview-sizer { padding-inline: 10px; }
+  .phosphor-workbench th,
+  .phosphor-workbench td,
+  .phosphor-workbench .dataview.table-view-table th { padding: 7px 6px; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .phosphor-workbench,
+  .phosphor-workbench *,
+  .phosphor-workbench *::before,
+  .phosphor-workbench *::after {
+    animation: none !important;
+    transition: none !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+/* Dashboard metadata stays available in editing mode; reading starts with the next action. */
+.markdown-preview-view.phosphor-workbench .metadata-container {
+  display: none;
+}

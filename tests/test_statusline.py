@@ -6,7 +6,7 @@ import time
 import unittest
 from pathlib import Path
 
-LINE = Path(__file__).with_name('statusline.py').resolve()
+LINE = Path(__file__).resolve().parents[1] / 'claude-code' / 'statusline.py'
 ANSI = re.compile(r'\x1b\[[0-9;]*m|\x1b\]8;;[^\x07]*\x07')
 
 

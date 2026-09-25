@@ -1,0 +1,16 @@
+# What the board watches. Copy this file to ~/.config/phosphor/tokens.txt and edit it there.
+#
+# Two kinds of line, because majors and onchain tokens come from different places:
+#
+#   CG   <SYMBOL>  <coingecko-id>                              majors: spot price + 24h
+#   DEX  <SYMBOL>  <chain>  <token-address>  [coingecko-id]    anything on a DEX
+#
+# For a DEX line, give the TOKEN address, not a pair: the tick picks whichever pair holds the
+# deepest liquidity, so it keeps working when liquidity moves. The optional coingecko id is what
+# enables month-to-date. Chains are Dexscreener's ids (solana, ethereum, base, bsc, ...).
+
+CG   BTC   bitcoin
+CG   ETH   ethereum
+CG   SOL   solana
+
+# DEX  BONK  solana  DezXAZ8z7PnrnRJjz3wXBoRgixCa6xjnB7YaB1pPB263  bonk

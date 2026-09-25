@@ -1,0 +1,20 @@
+{
+  "customSidebars": {
+    "beta": { "enabled": true },
+    "renderer": "inProcess"
+  },
+  "paneBorderColor": "#0C2A17",
+  "activePaneBorderColor": "#41FF8D",
+  "sidebarAppearance": {
+    "matchTerminalBackground": true,
+    "tintColor": "#020703",
+    "darkModeTintColor": "#020703",
+    "tintOpacity": 0.9
+  },
+  "notifications": {
+    "paneFlash": true,
+    "paneFlashColor": "#41FF8D",
+    "sound": "custom",
+    "customSoundFilePath": "{{PHOSPHOR_HOME}}/cmux/blip.wav"
+  }
+}
