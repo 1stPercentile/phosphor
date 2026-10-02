@@ -135,9 +135,10 @@ IDLE = [
 
 BY_NAME = {m["caption"]: m for m in IDLE}
 
-# Chosen by the sidebar from everything the person running him is doing: any
-# Claude that needs them and he waves; any Claude working and he works; when
-# all of it is quiet he's back to a mood.
+# Chosen by the sidebar from what the person running him is doing: cmux's own
+# agents live first, then every Claude Code session's hooks. His "needs you"
+# means an agent pinged them; his work means they put one to work; otherwise
+# he's back to a mood.
 LIVE = {
     "work":  M("working", [E_DEF, E_LEFT], 3, "jitter",
                ["▁", "▃", "▅", "▇", "▅", "▃"], "#40C8E0",
@@ -310,17 +311,21 @@ def render(state=None):
 
     funcs = schedules(m, "I") + schedules(LIVE["work"], "W") + schedules(LIVE["needs"], "N")
 
-    # Live mode, read by the sidebar every second. Pip follows whoever runs him:
-    # the hook mode (baked in, every Claude Code session) and cmux's agents on
-    # every workspace, live. The most urgent wins: needs, then work, then idle.
-    if hm == "needs":
-        funcs.append('''func pipMode() -> String {
-    return "needs"
-}''')
-    else:
-        funcs.append(f'''func pipMode() -> String {{
-    let agents = workspaces.filter {{ $0.agents != nil }}.flatMap {{ $0.agents }}
-    if agents.filter {{ $0.status == "needs_input" }}.count > 0 {{ return "needs" }}
+    # Live mode, read by the sidebar every second. Pip follows whoever runs him.
+    # cmux's live status comes first, so a session you approved reads as working
+    # from its next tool call (cmux records no event for the approval itself):
+    # working counts on every workspace, but needs_input only
+    # on the one you're looking at, because cmux sets it on every Claude
+    # notification (a finished turn too) and nothing clears it until that tab
+    # is prompted. Then the hook mode, baked in each minute: every Claude Code
+    # session, cmux's included, only notices that ask something of you, the most
+    # urgent first. The trade: a session waiting on you is not shown while a
+    # cmux agent is working. No `nil` here: the interpreter has no nil, so a
+    # comparison with it is always false and filtered everything out.
+    funcs.append(f'''func pipMode() -> String {{
+    let here = workspaces.filter {{ $0.selected }}.flatMap {{ $0.agents }}
+    if here.filter {{ $0.status == "needs_input" }}.count > 0 {{ return "needs" }}
+    let agents = workspaces.flatMap {{ $0.agents }}
     if agents.filter {{ $0.status == "working" }}.count > 0 {{ return "work" }}
     return "{hm}"
 }}''')

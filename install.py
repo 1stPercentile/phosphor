@@ -313,7 +313,7 @@ def claude():
         if not any(h.get("command") == cmd for g in groups for h in g.get("hooks", [])):
             groups.append({"hooks": [{"type": "command", "command": cmd, "timeout": 10}]})
             changed = True
-    ok("hooks: Pip works when Claude works, and waves when it needs you")
+    ok("hooks: Pip's “needs you” means an agent pinged you; when he works, you've put one to work")
     if changed:
         dump_json(path, data)
 

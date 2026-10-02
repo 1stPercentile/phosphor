@@ -4,8 +4,10 @@
 cmux's agent list can be empty for sessions it didn't launch itself, so the
 sidebar can't always see "working" on its own. Claude Code can say so
 directly: UserPromptSubmit fires when you send a prompt (working starts), Stop
-when the response is done, Notification when Claude is waiting on you. Each
-records the mode here; the minute tick bakes it into the sidebar.
+when the response is done, Notification when Claude is waiting on you (only
+notices that ask something of you count: see wants_you). Each records the
+mode here; the minute tick
+bakes it into the sidebar.
 
 It never re-bakes on its own. A hook fires on every turn of every session,
 and every changed sidebar file is a full reload in cmux; with a few agents
@@ -36,6 +38,14 @@ MODE = paths.cache("pip", "mode.txt")
 SESSIONS = paths.cache("pip", "sessions.json")
 STRETCH = 5 * 60   # prompts closer together than this are one working stretch
 DECAY = 20 * 60    # a session with no hook for this long drops out
+# The Notification types that ask something of you (Claude Code hooks docs; quota_auto_resume_stale
+# waits for Enter).
+# "idle_prompt" only says a turn ended a minute ago; it, auth_success, agent_completed
+# and the other quota notices change nothing, or every finished tab would keep Pip on "needs you".
+# worker_permission_prompt ("<worker> needs permission for <tool>") is in Claude Code 2.1.286 but
+# not yet in the docs, so any type naming a permission counts too.
+NEEDS_YOU = {"permission_prompt", "worker_permission_prompt", "elicitation_dialog",
+             "elicitation_url_dialog", "agent_needs_input", "quota_auto_resume_stale"}
 
 
 def read(path=None):
@@ -101,12 +111,25 @@ def _write(path, text):
     os.replace(tmp, path)
 
 
-def session_of(raw):
+def payload(raw):
     try:
-        sid = json.loads(raw).get("session_id")
-    except (ValueError, AttributeError):
-        sid = None
+        data = json.loads(raw)
+    except ValueError:
+        return {}
+    return data if isinstance(data, dict) else {}
+
+
+def session_of(data):
+    sid = data.get("session_id")
     return str(sid) if sid else "default"
+
+
+def wants_you(data):
+    """Is a Notification about something you have to act on? No detail counts as yes."""
+    kind = data.get("notification_type")
+    if kind:
+        return kind in NEEDS_YOU or "permission" in str(kind)
+    return "waiting for your input" not in str(data.get("message") or "").lower()
 
 
 def main():
@@ -118,7 +141,10 @@ def main():
         raw = "" if sys.stdin.isatty() else sys.stdin.read()
     except Exception:
         raw = ""
-    sid = session_of(raw)
+    data = payload(raw)
+    if mode == "needs" and not wants_you(data):
+        return 0
+    sid = session_of(data)
     os.makedirs(os.path.dirname(MODE), exist_ok=True)
     now = int(time.time())
     with open(SESSIONS + ".lock", "w") as lock:

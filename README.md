@@ -8,7 +8,7 @@ A green CRT for the whole stack: terminal, shell, cmux sidebar, Claude Code and 
 
 - **The board.** Live prices, month-to-date in dollars, and the 24h move. Colour carries the size of the move, not just its sign.
 - **The sky.** The real sun, moon and stars over wherever you are. The weather comes from the market: clouds thicken with fear, rain falls when the market bleeds, and a crash is a storm. A tape underneath shows BTC dominance, market cap, funding and new listings.
-- **Pip.** The Claude Code mascot, alive. He blinks, looks around, dances, copes and touches grass, with a new random minute of behaviour every minute. He follows every Claude you run, in any app and on every workspace. If one needs you, he waves; if one is working, so is he.
+- **Pip.** The Claude Code mascot, alive. He blinks, looks around, dances, copes and touches grass, with a new random minute of behaviour every minute. His “needs you” means an agent pinged you; when he works, you've put one to work.
 
 **The terminal** is one hue at many brightnesses. A CRT shader adds glass curvature, an aperture grille, scanlines and bloom. The beam blooms as you type, and the tube warms up when a pane takes focus.
 
@@ -22,7 +22,7 @@ A green CRT for the whole stack: terminal, shell, cmux sidebar, Claude Code and 
 
 <img src="docs/terminal.png" alt="the Phosphor terminal under the CRT shader: git log, tests passing, ls, and gti status at the prompt, its typo already amber">
 
-<p align="center"><img src="docs/pip.gif" width="338" alt="Pip dancing under music notes, then “thinking…” while Claude works, then “needs you” with a ! when Claude is waiting"></p>
+<p align="center"><img src="docs/pip.gif" width="338" alt="Pip dancing under music notes, then “thinking…” while Claude works, then “needs you” with a ! when an agent pings you"></p>
 
 ![status line](docs/statusline.png)
 

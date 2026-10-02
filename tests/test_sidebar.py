@@ -86,6 +86,9 @@ class Sidebar(unittest.TestCase):
         seed_cache()
 
     def check(self, src):
+        # cmux's interpreter has no nil: a comparison with it evaluates to nothing, which
+        # .filter and if read as false, so `$0.agents != nil` silently dropped every agent.
+        self.assertNotRegex(src, r"\bnil\b", "the interpreter has no nil")
         funcs = defined_funcs(src)
         for arg in colour_args(src):
             ok = (re.fullmatch(HEX, arg)
@@ -163,7 +166,7 @@ class Sidebar(unittest.TestCase):
         self.check(open(out, encoding="utf-8").read())
 
 
-# Pip's hook mode: one small write per hook, never a re-bake, and a working
+# Pip's hook mode: one session's record per hook, never a re-bake, and a working
 # stretch that survives turns ending and long sessions.
 T0 = 1_790_000_000
 
@@ -182,8 +185,8 @@ class HookMode(unittest.TestCase):
             p.stop()
         self.temp.cleanup()
 
-    def hook(self, word, at, session=None):
-        stdin = json.dumps({"session_id": session}) if session else "{}"
+    def hook(self, word, at, session=None, **fields):
+        stdin = json.dumps(dict({"session_id": session} if session else {}, **fields))
         with patch.object(mode.time, "time", return_value=at), \
              patch.object(sys, "argv", ["mode.py", word]), \
              patch.object(sys, "stdin", io.StringIO(stdin)), \
@@ -208,6 +211,32 @@ class HookMode(unittest.TestCase):
         self.hook("idle", T0 + 90, "b")
         self.assertEqual(self.hook_mode(T0 + 100)[0], "work", "both inside their stretch")
         self.assertEqual(self.hook_mode(T0 + 90 + mode.STRETCH)[0], "idle")
+
+    def test_only_notifications_that_need_you_count(self):
+        self.hook("work", T0, "a")
+        before = Path(mode.SESSIONS).read_text()
+        for kind in ("idle_prompt", "auth_success", "agent_completed", "quota_auto_resume_fired"):
+            self.hook("needs", T0 + 10, "a", notification_type=kind)
+        self.assertEqual(Path(mode.SESSIONS).read_text(), before, "these leave the session untouched")
+        self.hook("needs", T0 + 20, "a", message="Claude is waiting for your input")
+        self.assertEqual(Path(mode.SESSIONS).read_text(), before, "an older Claude Code's idle notice")
+        for kind in ("permission_prompt", "worker_permission_prompt", "elicitation_dialog",
+                     "elicitation_url_dialog", "agent_needs_input", "quota_auto_resume_stale",
+                     "some_future_permission_ask"):
+            self.hook("needs", T0 + 30, "b", notification_type=kind)
+            self.assertEqual(self.hook_mode(T0 + 31)[0], "needs", kind)
+            self.hook("work", T0 + 32, "b")
+
+    def test_a_finished_tab_does_not_override_work_elsewhere(self):
+        # The 2026-10-02 regression: session a finished and got idle_prompt while b kept working.
+        self.hook("work", T0, "a")
+        self.hook("idle", T0 + 30, "a")
+        self.hook("needs", T0 + 90, "a", notification_type="idle_prompt")
+        for minute in range(0, 22, 2):
+            self.hook("work", T0 + minute * 60, "b")
+            self.hook("idle", T0 + minute * 60 + 50, "b")
+        for minute in (3, 6, 10, 15, 19, 21):
+            self.assertEqual(self.hook_mode(T0 + minute * 60)[0], "work", f"minute {minute}")
 
     def test_a_silent_session_drops_out(self):
         self.hook("needs", T0, "a")
@@ -245,15 +274,25 @@ class HookMode(unittest.TestCase):
 
     def test_pip_follows_every_workspace_and_the_hook(self):
         os.makedirs(os.path.dirname(self.path), exist_ok=True)
-        if True:
-            Path(self.path).write_text(f"idle 0 {int(time.time())} 0\n")
-            idle = sprite.render()
-            Path(self.path).write_text(f"needs 0 {int(time.time())} 0\n")
-            needs = sprite.render()
-        self.assertIn("workspaces.filter { $0.agents != nil }.flatMap { $0.agents }", idle)
-        self.assertNotIn("$0.selected", idle.split("func pipMode")[1].split("\n}")[0],
-                         "the selected workspace alone must not decide")
-        self.assertIn('func pipMode() -> String {\n    return "needs"\n}', needs)
+        Path(self.path).write_text(f"idle 0 {int(time.time())} 0\n")
+        idle = sprite.render()
+        Path(self.path).write_text(f"needs 0 {int(time.time())} 0\n")
+        needs = sprite.render()
+        fn = idle.split("func pipMode")[1].split("\n}")[0]
+        # working counts on every workspace; cmux's needs_input (set on every Claude notification,
+        # a finished turn too, and never cleared) only on the selected one
+        # These forms were run through cmux 0.64.25's own interpreter (needs_input on the selected
+        # workspace -> needs; working anywhere -> work; a finished background tab -> ignored).
+        self.assertIn("let here = workspaces.filter { $0.selected }.flatMap { $0.agents }", fn)
+        self.assertIn('here.filter { $0.status == "needs_input" }', fn)
+        self.assertIn("let agents = workspaces.flatMap { $0.agents }", fn)
+        self.assertIn('agents.filter { $0.status == "working" }', fn)
+        self.assertNotIn('agents.filter { $0.status == "needs_input" }', fn)
+        # cmux's live agents come first, so an approved session reads as working from its next tool call;
+        # the hook mode is the fallthrough, needs included.
+        mode_fn = needs.split("func pipMode() -> String {")[1].split("\n}")[0]
+        self.assertLess(mode_fn.index('"needs_input"'), mode_fn.index('"working"'))
+        self.assertTrue(mode_fn.rstrip().endswith('return "needs"'), "the hook's needs is the fallthrough")
 
     def test_old_two_field_file_and_missing_file(self):
         os.makedirs(os.path.dirname(self.path), exist_ok=True)
