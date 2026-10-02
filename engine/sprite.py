@@ -135,9 +135,9 @@ IDLE = [
 
 BY_NAME = {m["caption"]: m for m in IDLE}
 
-# Chosen LIVE by the sidebar from what Claude is doing: the moment a Claude
-# starts working he gets to work; the moment it needs you he waves; the
-# moment it stops he's back to a mood.
+# Chosen by the sidebar from everything the person running him is doing: any
+# Claude that needs them and he waves; any Claude working and he works; when
+# all of it is quiet he's back to a mood.
 LIVE = {
     "work":  M("working", [E_DEF, E_LEFT], 3, "jitter",
                ["▁", "▃", "▅", "▇", "▅", "▃"], "#40C8E0",
@@ -274,13 +274,13 @@ def selector(name, rtype):
 
 
 def hook_mode():
-    """(word, since): work / needs / idle, as last reported by Claude Code's
-    hooks through mode.py. Idle twenty minutes after the last hook. A turn that
-    ends within mode.STRETCH of the last prompt still reads as work, so agents
-    finishing turns don't flip Pip; "since" is when the working stretch began."""
-    word, began, last, last_work = mode.read(paths.cache("pip", "mode.txt"))
+    """(word, since): the most urgent state across every Claude Code session's
+    hooks (mode.current): needs, then work, then idle. A session drops out
+    twenty minutes after its last hook; a turn that ends within mode.STRETCH of
+    its last prompt still reads as work; "since" is when the work began."""
+    word, began, last, last_work = mode.current()
     now = time.time()
-    if now - last < 20 * 60:
+    if now - last < mode.DECAY:
         if word == "needs":
             return "needs", last
         if word == "work" or now - last_work < mode.STRETCH:
@@ -310,15 +310,18 @@ def render(state=None):
 
     funcs = schedules(m, "I") + schedules(LIVE["work"], "W") + schedules(LIVE["needs"], "N")
 
-    # Live mode, read by the sidebar every second. cmux's own agent list is the
-    # fast path; the hook file (baked in below) covers sessions cmux can't see.
-    funcs.append(f'''func pipMode() -> String {{
-    let sel = workspaces.filter {{ $0.selected }}
-    if sel.count == 0 {{ return "{hm}" }}
-    let w = sel.first
-    if w.agents == nil {{ return "{hm}" }}
-    if w.agents.filter {{ $0.status == "needs_input" }}.count > 0 {{ return "needs" }}
-    if w.agents.filter {{ $0.status == "working" }}.count > 0 {{ return "work" }}
+    # Live mode, read by the sidebar every second. Pip follows whoever runs him:
+    # the hook mode (baked in, every Claude Code session) and cmux's agents on
+    # every workspace, live. The most urgent wins: needs, then work, then idle.
+    if hm == "needs":
+        funcs.append('''func pipMode() -> String {
+    return "needs"
+}''')
+    else:
+        funcs.append(f'''func pipMode() -> String {{
+    let agents = workspaces.filter {{ $0.agents != nil }}.flatMap {{ $0.agents }}
+    if agents.filter {{ $0.status == "needs_input" }}.count > 0 {{ return "needs" }}
+    if agents.filter {{ $0.status == "working" }}.count > 0 {{ return "work" }}
     return "{hm}"
 }}''')
     for name, rt in (("pipRow1", "String"), ("pipRow2", "String"),
@@ -326,8 +329,8 @@ def render(state=None):
                      ("pipSX", "Double"), ("pipSY", "Double"), ("pipAcc", "String")):
         funcs.append(selector(name, rt))
 
-    # While working, the caption walks the stages of a turn, timed from the
-    # prompt (the hook's timestamp), live off the clock.
+    # While working, the caption walks the stages of a stretch of work, timed
+    # from when it began (mode.txt's second field), live off the clock.
     funcs.append(f'''func pipCapW(_ s: Int) -> String {{
     let e = clock.epoch - {started}
     if e < 8 {{ return "reading…" }}

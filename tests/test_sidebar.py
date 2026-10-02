@@ -172,25 +172,50 @@ class HookMode(unittest.TestCase):
     def setUp(self):
         self.temp = tempfile.TemporaryDirectory()
         self.path = os.path.join(self.temp.name, "pip", "mode.txt")
-        self.patch = patch.object(mode, "MODE", self.path)
-        self.patch.start()
+        self.patches = [patch.object(mode, "MODE", self.path),
+                        patch.object(mode, "SESSIONS", os.path.join(self.temp.name, "pip", "sessions.json"))]
+        for p in self.patches:
+            p.start()
 
     def tearDown(self):
-        self.patch.stop()
+        for p in self.patches:
+            p.stop()
         self.temp.cleanup()
 
-    def hook(self, word, at):
+    def hook(self, word, at, session=None):
+        stdin = json.dumps({"session_id": session}) if session else "{}"
         with patch.object(mode.time, "time", return_value=at), \
              patch.object(sys, "argv", ["mode.py", word]), \
-             patch.object(sys, "stdin", io.StringIO("{}")), \
-             patch("subprocess.run") as run, patch("subprocess.Popen") as popen:
+             patch.object(sys, "stdin", io.StringIO(stdin)), \
+             patch("subprocess.run") as run, patch("subprocess.Popen") as popen, \
+             patch.object(render_sidebar, "main") as bake:
             mode.main()
-        self.assertFalse(run.called or popen.called, "a hook must never re-bake the sidebar")
+        self.assertFalse(run.called or popen.called or bake.called, "a hook must never re-bake the sidebar")
 
     def hook_mode(self, at):
-        with patch.object(sprite.time, "time", return_value=at), \
-             patch.object(sprite.paths, "cache", lambda *parts: self.path):
+        with patch.object(sprite.time, "time", return_value=at), patch.object(mode.time, "time", return_value=at):
             return sprite.hook_mode()
+
+    def test_the_most_urgent_session_wins(self):
+        # One shared record let the last hook win: a prompt in B hid A still waiting on you.
+        self.hook("work", T0, "a")
+        self.hook("needs", T0 + 30, "a")
+        self.hook("work", T0 + 40, "b")
+        self.assertEqual(self.hook_mode(T0 + 50)[0], "needs")
+        self.hook("work", T0 + 60, "a")
+        self.assertEqual(self.hook_mode(T0 + 70), ("work", T0))
+        self.hook("idle", T0 + 80, "a")
+        self.hook("idle", T0 + 90, "b")
+        self.assertEqual(self.hook_mode(T0 + 100)[0], "work", "both inside their stretch")
+        self.assertEqual(self.hook_mode(T0 + 90 + mode.STRETCH)[0], "idle")
+
+    def test_a_silent_session_drops_out(self):
+        self.hook("needs", T0, "a")
+        self.hook("work", T0 + mode.DECAY - 60, "b")
+        self.assertEqual(self.hook_mode(T0 + mode.DECAY - 30)[0], "needs")
+        self.assertEqual(self.hook_mode(T0 + mode.DECAY + 1)[0], "work", "a has been silent for twenty minutes")
+        self.hook("work", T0 + mode.DECAY + 5, "b")
+        self.assertEqual(mode.read()[0], "work", "mode.txt carries the aggregate as of the last hook")
 
     def test_prompts_in_one_stretch_keep_when_work_began(self):
         self.hook("work", T0)
@@ -218,11 +243,25 @@ class HookMode(unittest.TestCase):
         self.assertEqual(self.hook_mode(T0 + 31)[0], "work")
         self.assertEqual(self.hook_mode(T0 + mode.STRETCH + 1)[0], "idle")
 
+    def test_pip_follows_every_workspace_and_the_hook(self):
+        os.makedirs(os.path.dirname(self.path), exist_ok=True)
+        if True:
+            Path(self.path).write_text(f"idle 0 {int(time.time())} 0\n")
+            idle = sprite.render()
+            Path(self.path).write_text(f"needs 0 {int(time.time())} 0\n")
+            needs = sprite.render()
+        self.assertIn("workspaces.filter { $0.agents != nil }.flatMap { $0.agents }", idle)
+        self.assertNotIn("$0.selected", idle.split("func pipMode")[1].split("\n}")[0],
+                         "the selected workspace alone must not decide")
+        self.assertIn('func pipMode() -> String {\n    return "needs"\n}', needs)
+
     def test_old_two_field_file_and_missing_file(self):
         os.makedirs(os.path.dirname(self.path), exist_ok=True)
         Path(self.path).write_text(f"work {T0}\n")
         self.assertEqual(mode.read(), ("work", T0, T0, T0))
         self.assertEqual(self.hook_mode(T0 + 60), ("work", T0))
+        Path(self.path).write_text(f"idle {T0}\n")
+        self.assertEqual(self.hook_mode(T0 + 60)[0], "idle", "an old idle file must not read as work")
         Path(self.path).unlink()
         self.assertEqual(mode.read(), ("idle", 0, 0, 0))
         self.assertEqual(self.hook_mode(T0)[0], "idle")
