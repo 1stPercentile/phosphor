@@ -3,6 +3,7 @@ a colour it can't resolve renders the default, a `\\n` prints literally, a missi
 func renders nothing. These tests bake every mood offline and check the output
 against the rules that interpreter actually enforces."""
 
+import io
 import json
 import os
 import re
@@ -11,6 +12,7 @@ import tempfile
 import time
 import unittest
 from pathlib import Path
+from unittest.mock import patch
 
 ROOT = Path(__file__).resolve().parents[1]
 TMP = tempfile.mkdtemp(prefix="phosphor-test-")
@@ -19,6 +21,7 @@ os.environ["PHOSPHOR_CONFIG"] = os.path.join(TMP, "config")
 os.environ["PHOSPHOR_SIDEBAR"] = os.path.join(TMP, "sidebars", "phosphor.swift")
 sys.path.insert(0, str(ROOT / "engine"))
 
+import mode  # noqa: E402
 import render_sidebar  # noqa: E402
 import sky  # noqa: E402
 import sprite  # noqa: E402
@@ -158,6 +161,71 @@ class Sidebar(unittest.TestCase):
         self.assertEqual(render_sidebar.main(), 0)
         self.assertTrue(os.path.exists(out))
         self.check(open(out, encoding="utf-8").read())
+
+
+# Pip's hook mode: one small write per hook, never a re-bake, and a working
+# stretch that survives turns ending and long sessions.
+T0 = 1_790_000_000
+
+
+class HookMode(unittest.TestCase):
+    def setUp(self):
+        self.temp = tempfile.TemporaryDirectory()
+        self.path = os.path.join(self.temp.name, "pip", "mode.txt")
+        self.patch = patch.object(mode, "MODE", self.path)
+        self.patch.start()
+
+    def tearDown(self):
+        self.patch.stop()
+        self.temp.cleanup()
+
+    def hook(self, word, at):
+        with patch.object(mode.time, "time", return_value=at), \
+             patch.object(sys, "argv", ["mode.py", word]), \
+             patch.object(sys, "stdin", io.StringIO("{}")), \
+             patch("subprocess.run") as run, patch("subprocess.Popen") as popen:
+            mode.main()
+        self.assertFalse(run.called or popen.called, "a hook must never re-bake the sidebar")
+
+    def hook_mode(self, at):
+        with patch.object(sprite.time, "time", return_value=at), \
+             patch.object(sprite.paths, "cache", lambda *parts: self.path):
+            return sprite.hook_mode()
+
+    def test_prompts_in_one_stretch_keep_when_work_began(self):
+        self.hook("work", T0)
+        self.hook("idle", T0 + 40)
+        self.hook("work", T0 + 100)
+        self.assertEqual(mode.read(), ("work", T0, T0 + 100, T0 + 100))
+        self.hook("work", T0 + 100 + mode.STRETCH + 1)
+        self.assertEqual(mode.read()[1], T0 + 100 + mode.STRETCH + 1)
+
+    def test_a_long_working_session_does_not_decay_while_prompts_keep_coming(self):
+        for minute in range(0, 31, 3):
+            self.hook("work", T0 + minute * 60)
+        self.assertEqual(self.hook_mode(T0 + 31 * 60), ("work", T0))
+
+    def test_decay_counts_from_the_last_hook(self):
+        self.hook("work", T0)
+        self.assertEqual(self.hook_mode(T0 + 19 * 60)[0], "work")
+        self.assertEqual(self.hook_mode(T0 + 20 * 60)[0], "idle")
+        self.hook("needs", T0)
+        self.assertEqual(self.hook_mode(T0 + 60), ("needs", T0))
+
+    def test_a_turn_ending_holds_work_for_the_stretch(self):
+        self.hook("work", T0)
+        self.hook("idle", T0 + 30)
+        self.assertEqual(self.hook_mode(T0 + 31)[0], "work")
+        self.assertEqual(self.hook_mode(T0 + mode.STRETCH + 1)[0], "idle")
+
+    def test_old_two_field_file_and_missing_file(self):
+        os.makedirs(os.path.dirname(self.path), exist_ok=True)
+        Path(self.path).write_text(f"work {T0}\n")
+        self.assertEqual(mode.read(), ("work", T0, T0, T0))
+        self.assertEqual(self.hook_mode(T0 + 60), ("work", T0))
+        Path(self.path).unlink()
+        self.assertEqual(mode.read(), ("idle", 0, 0, 0))
+        self.assertEqual(self.hook_mode(T0)[0], "idle")
 
 
 if __name__ == "__main__":

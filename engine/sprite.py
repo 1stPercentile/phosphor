@@ -36,6 +36,7 @@ import sys
 import time
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+import mode  # noqa: E402
 import paths  # noqa: E402
 
 # ── palette ───────────────────────────────────────────────────────────
@@ -274,15 +275,17 @@ def selector(name, rtype):
 
 def hook_mode():
     """(word, since): work / needs / idle, as last reported by Claude Code's
-    hooks through mode.py. Stale after twenty minutes."""
-    try:
-        with open(paths.cache("pip", "mode.txt"), encoding="utf-8") as fh:
-            word, ts = (fh.read().split() + ["idle", "0"])[:2]
-        if word in ("work", "needs") and time.time() - int(ts) < 20 * 60:
-            return word, int(ts)
-    except (OSError, ValueError):
-        pass
-    return "idle", int(time.time())
+    hooks through mode.py. Idle twenty minutes after the last hook. A turn that
+    ends within mode.STRETCH of the last prompt still reads as work, so agents
+    finishing turns don't flip Pip; "since" is when the working stretch began."""
+    word, began, last, last_work = mode.read(paths.cache("pip", "mode.txt"))
+    now = time.time()
+    if now - last < 20 * 60:
+        if word == "needs":
+            return "needs", last
+        if word == "work" or now - last_work < mode.STRETCH:
+            return "work", began
+    return "idle", int(now)
 
 
 def pinned():

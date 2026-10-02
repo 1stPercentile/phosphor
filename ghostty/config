@@ -42,8 +42,10 @@ palette = 13=#8CFFC4
 palette = 14=#C6FFE2
 palette = 15=#EAFFF3
 
-background-opacity = 0.97
-background-blur = 28
+# Opaque, no blur: the CRT shader writes alpha 1.0 on every pixel, so nothing
+# shows through anyway, and a translucent window makes the window server blur
+# the desktop behind the terminal on every redraw.
+background-opacity = 1
 unfocused-split-opacity = 0.72
 
 # ─── the tube ──────────────────────────────────────────────────────────
